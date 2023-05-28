@@ -16,6 +16,16 @@ import Button from "../components/Button";
 import { Theme } from "../constants/theme";
 import Select from "../components/Select";
 import Card from "../components/Card";
+import List from "~/components/List";
+import {
+  $amount,
+  $type,
+  addButtonPressed,
+  amountChanged,
+  typeChanged,
+} from "~/store/form";
+import { useStore } from "effector-react";
+import { useRouter } from "expo-router";
 
 type TransactionType = "income" | "expense" | "transfer";
 
@@ -25,36 +35,40 @@ interface Action {
 
 // TODO: move to a separate component
 export default function Modal() {
-  const [type, setType] = useState<TransactionType>("expense");
   const [isButtonHidden, setButtonHidden] = useState(false);
   const theme = useTheme();
   const styles = withTheme(theme);
+
+  const type = useStore($type);
+  const amount = useStore($amount);
+
+  const router = useRouter();
 
   const onTypeChange = (newType: TransactionType) => {
     if (Platform.OS !== "web") {
       Haptics.selectionAsync();
     }
-    setType(newType);
+
+    typeChanged(newType);
+  };
+
+  const onSubmit = () => {
+    addButtonPressed();
+    router.push("/");
   };
 
   const additionalActions: Action[] = [
     {
       render: (key) => (
-        <View key={key} style={styles["additional__list-item"]}>
+        <List.Item key={key}>
           <Typography>Date</Typography>
-        </View>
+        </List.Item>
       ),
     },
     {
       render: (key) => {
         return (
-          <View
-            key={key}
-            style={[
-              styles["additional__list-item"],
-              styles["additional__list-item_last"],
-            ]}
-          >
+          <List.Item key={key} last>
             <TextField
               placeholder="Note"
               variant="plain"
@@ -62,7 +76,7 @@ export default function Modal() {
               returnKeyLabel="done"
               returnKeyType="done"
             />
-          </View>
+          </List.Item>
         );
       },
     },
@@ -100,6 +114,8 @@ export default function Modal() {
                   </View>
                 ),
               }}
+              onChangeText={amountChanged}
+              value={amount}
               keyboardType="number-pad"
               returnKeyType="done"
               style={styles.input}
@@ -128,6 +144,11 @@ export default function Modal() {
               </Button>
             </View>
             <Select
+              title="Account"
+              description="Tap to select"
+              style={styles.select}
+            />
+            <Select
               title="Category"
               description="Tap to select"
               style={styles.select}
@@ -145,11 +166,17 @@ export default function Modal() {
             </Card>
           </View>
         </ScrollView>
-        {!isButtonHidden && (
-          <View style={{ paddingHorizontal: 17, paddingBottom: 20 }}>
-            <Button size="large">Add</Button>
-          </View>
-        )}
+        <View
+          style={{
+            paddingHorizontal: 17,
+            paddingBottom: 20,
+            display: isButtonHidden ? "none" : "flex",
+          }}
+        >
+          <Button size="large" onPress={onSubmit}>
+            Add
+          </Button>
+        </View>
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
@@ -196,13 +223,5 @@ const withTheme = (t: Theme) =>
     card: {
       paddingVertical: 0,
       paddingHorizontal: 15,
-    },
-    "additional__list-item": {
-      paddingVertical: 12,
-      borderBottomWidth: 1,
-      borderBottomColor: t.colors.surface,
-    },
-    "additional__list-item_last": {
-      borderBottomWidth: 0,
     },
   });
